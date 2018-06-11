@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
 from retry import retry
+import re
+
 
 header_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
 
@@ -10,7 +12,7 @@ header_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML
 @retry(exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout), delay=2, backoff=2,
        jitter=(0, 5), max_delay=30)
 def get_content_in_detail_page(id):
-    detail_page = requests.get("http://www.ksohu.com/", params={'id': id},
+    detail_page = requests.get("http://www.ksohu.com/post/{0}.html".format(id),
                                headers={"User-Agent": header_ua, "Cookie": 'commshow-{0}=1'.format(id)},
                                timeout=10).content
     detail_page = BeautifulSoup(detail_page, "lxml")
@@ -25,7 +27,7 @@ def get_content_in_detail_page(id):
        jitter=(0, 5), max_delay=30)
 def get_data(page, last_id=None):
     result = []
-    request = requests.get("http://www.ksohu.com/", params={'page': page},
+    request = requests.get("http://www.ksohu.com/page_{0}.html".format(page),
                            headers={"User-Agent": header_ua}, timeout=10)
     home_page = BeautifulSoup(request.content, "lxml")
     if request.status_code != 200:
@@ -46,7 +48,7 @@ def get_data(page, last_id=None):
 
         t = p.select('div.div-title')[0]
         url = t.find('a')['href']
-        p_id = int(url[url.rindex('=') + 1:])
+        p_id = int(re.compile(r'(\d+)\.html').findall(url)[0])
         if last_id is not None and p_id <= last_id:
             break
 
@@ -67,7 +69,7 @@ def get_data(page, last_id=None):
 
 if __name__ == "__main__":
     data = []
-    last_id = 336
+    last_id = 361
     for p in range(1, 21):  # 1到20页
         new_page = get_data(p, last_id)
         if len(new_page) <= 0:
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     if len(data) > 0:
         data = np.array(data)
         data = data.reshape((-1, 5))
-        df = pd.DataFrame(data, columns=['id', 'time', 'title', 'content', 'info'])
+        df = pd.DataFrame(data, columns=['id', 'time', 'title', 'content', 'info'], index='id')
         print(df.head())
         df.to_csv('ps4_pkg_({0}-{1}].csv'.format(last_id, df.iloc[0]['id']))
     # print(get_content_in_detail_page(138))
