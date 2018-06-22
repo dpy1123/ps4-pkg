@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # df.to_csv(csv)
 
     # merge csv
-    df = pd.concat([pd.read_csv(csv, index_col=0) for csv in glob.glob("*.csv")], axis=0)
+    df = pd.concat([pd.read_csv(csv) for csv in glob.glob("*.csv")], axis=0)
     print(df.tail())
-    df.to_csv('ps4_pkg_(0-361].csv', index=False, columns=['id', 'time', 'title', 'content', 'info'])
+    df.to_csv('ps4_pkg_(0-419].csv', index=False, columns=['id', 'time', 'title', 'content', 'info'])
 
